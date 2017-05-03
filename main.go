@@ -19,14 +19,14 @@ func main() {
 	case "init":
 		initializeRepo()
 	case "hash":
-		hash := objects.HashObject(object{data: []byte("what is up, doc?"), objectType: "blob"}, true)
+		hash := objects.HashObject(objects.Object{Data: []byte("what is up, doc?"), ObjectType: "blob"}, true)
 		fmt.Println(hash)
 	case "read":
 		obj, err := objects.ReadObject(args[1])
 		if err != nil {
 			fmt.Println(err)
 		}
-		fmt.Printf("%s\n", obj.data)
+		fmt.Printf("%s\n", obj.Data)
 	}
 }
 

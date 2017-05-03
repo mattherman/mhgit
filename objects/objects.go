@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"compress/zlib"
 	"crypto/sha1"
+	"encoding/hex"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -47,8 +47,7 @@ func HashObject(objectToHash Object, write bool) string {
 func computeSha1(data []byte) string {
 	hasher := sha1.New()
 	hasher.Write(data)
-	hashBytes := hasher.Sum(nil)
-	return fmt.Sprintf("%x\n", hashBytes)
+	return hex.EncodeToString(hasher.Sum(nil))
 }
 
 // ReadObject will attempt to find an object using the given prefix.
