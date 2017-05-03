@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"compress/zlib"
 	"crypto/sha1"
+	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -29,10 +29,14 @@ func main() {
 	case "init":
 		initializeRepo()
 	case "hash":
-		hashObject(object{data: []byte("what is up, doc?"), objectType: "blob"}, true)
+		hash := hashObject(object{data: []byte("what is up, doc?"), objectType: "blob"}, true)
+		fmt.Println(hash)
 	case "read":
-		obj := readObject(args[1])
-		fmt.Printf("%s", obj.data)
+		obj, err := readObject(args[1])
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Printf("%s\n", obj.data)
 	}
 }
 
@@ -66,21 +70,18 @@ func hashObject(objectToHash object, write bool) string {
 	fullData := append(header, objectToHash.data...)
 
 	sha1 := computeSha1(fullData)
-	fmt.Println(sha1)
 
 	objectPath := filepath.Join("./.git/objects", sha1[:2])
 
 	os.Mkdir(objectPath, 0700)
 	fileName := filepath.Join(objectPath, sha1[2:])
-	fmt.Println(fileName)
 
 	if write {
-		var buf bytes.Buffer
-		w := zlib.NewWriter(&buf)
-		w.Write(fullData)
-		w.Close()
+		err := writeCompressedFile(fileName, fullData)
 
-		ioutil.WriteFile(fileName, buf.Bytes(), 0700)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	return sha1
@@ -93,55 +94,57 @@ func computeSha1(data []byte) string {
 	return fmt.Sprintf("%x\n", hashBytes)
 }
 
-func readObject(hash string) object {
+func readObject(hash string) (object, error) {
 	if len(hash) < 3 {
-		fmt.Println("Prefix provided must be at least three characters.")
-		return object{}
+		return object{}, errors.New("Prefix provided must be at least three characters")
 	}
 
 	hashDirectory := "./.git/objects/" + hash[:2]
 	hashRemainder := hash[2:]
 
-	if fileDoesNotExist(hashDirectory) {
-		fmt.Println("Object " + hash + " not found.")
-		return object{}
-	}
-
 	files, _ := filepath.Glob(hashDirectory + "/" + hashRemainder + "*")
+
 	if len(files) == 0 {
-		fmt.Println("Object " + hash + " not found.")
+		return object{}, errors.New("Object " + hash + " not found.")
 	} else if len(files) > 1 {
-		fmt.Println("Found multiple matches for " + hash + ".")
+		return object{}, errors.New("Found multiple matches for " + hash + ".")
 	} else {
-		dat, _ := ioutil.ReadFile(files[0])
+		content, err := readCompressedFile(files[0])
 
-		b := bytes.NewReader(dat)
-
-		r, err := zlib.NewReader(b)
 		if err != nil {
 			panic(err)
 		}
-		p, _ := ioutil.ReadAll(r)
-		fmt.Println(p)
 
-		r.Close()
-
-		return object{data: p, objectType: "blob"}
+		return object{data: content, objectType: "blob"}, nil
 	}
-
-	return object{}
 }
 
-func test() {
-	buff := []byte{120, 156, 202, 72, 205, 201, 201, 215, 81, 40, 207,
-		47, 202, 73, 225, 2, 4, 0, 0, 255, 255, 33, 231, 4, 147}
-	b := bytes.NewReader(buff)
+func writeCompressedFile(filename string, uncompressedData []byte) error {
+	var buf bytes.Buffer
+	w := zlib.NewWriter(&buf)
+	w.Write(uncompressedData)
+	w.Close()
 
-	r, err := zlib.NewReader(b)
+	return ioutil.WriteFile(filename, buf.Bytes(), 0700)
+}
+
+func readCompressedFile(filename string) ([]byte, error) {
+	fileContent, err := ioutil.ReadFile(filename)
 	if err != nil {
 		panic(err)
 	}
-	io.Copy(os.Stdout, r)
 
-	r.Close()
+	buf := bytes.NewReader(fileContent)
+	r, err := zlib.NewReader(buf)
+	defer r.Close()
+	if err != nil {
+		panic(err)
+	}
+
+	result, err := ioutil.ReadAll(r)
+	if err != nil {
+		panic(err)
+	}
+
+	return result, nil
 }
