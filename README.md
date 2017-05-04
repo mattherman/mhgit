@@ -1,0 +1,1 @@
+A Git implementation written in Go. Inspired and aided by [gitlet.js](http://gitlet.maryrosecook.com/) and [pygit](http://benhoyt.com/writings/pygit/). Undertaken in an effort to learn more about the inner workings of Git.
