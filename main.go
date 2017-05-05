@@ -25,8 +25,9 @@ func main() {
 		obj, err := objects.ReadObject(args[1])
 		if err != nil {
 			fmt.Println(err)
+		} else {
+			fmt.Printf("%s : %s\n", obj.ObjectType, obj.Data)
 		}
-		fmt.Printf("%s : %s\n", obj.ObjectType, obj.Data)
 	}
 }
 

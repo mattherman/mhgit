@@ -51,12 +51,12 @@ func computeSha1(data []byte) string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-// ReadObject will attempt to find an object using the given prefix.
-// The prefix must at least three characters and must be long enough to
-// be unique among all other objects.
-func ReadObject(hash string) (Object, error) {
+// FindObject will attempt to find an object using the given prefix and
+// return the filepath to the object. The prefix must at least three
+// characters and must be long enough to be unique among all other objects.
+func FindObject(hash string) (string, error) {
 	if len(hash) < 3 {
-		return Object{}, errors.New("Prefix provided must be at least three characters")
+		return "", errors.New("Prefix provided must be at least three characters")
 	}
 
 	hashDirectory := "./.git/objects/" + hash[:2]
@@ -65,31 +65,45 @@ func ReadObject(hash string) (Object, error) {
 	files, _ := filepath.Glob(hashDirectory + "/" + hashRemainder + "*")
 
 	if len(files) == 0 {
-		return Object{}, errors.New("Object " + hash + " not found.")
+		return "", errors.New("Object " + hash + " not found.")
 	} else if len(files) > 1 {
-		return Object{}, errors.New("Found multiple matches for " + hash + ".")
+		return "", errors.New("Found multiple matches for " + hash + ".")
 	} else {
-		content, err := readCompressedFile(files[0])
-
-		if err != nil {
-			panic(err)
-		}
-
-		nullIndex := bytes.IndexByte(content, 0)
-
-		if nullIndex == -1 {
-			panic("Object format unreadable.")
-		}
-
-		header := string(content[:nullIndex-1])
-		headerParts := strings.Split(header, " ")
-
-		if len(headerParts) < 2 {
-			panic("Unable to parse object header.")
-		}
-
-		return Object{Data: content[nullIndex:], ObjectType: headerParts[0]}, nil
+		return files[0], nil
 	}
+}
+
+// ReadObject will attempt to find an object using the given prefix and
+// return an Object containing the object type and data.
+// The prefix must at least three characters and must be long enough to
+// be unique among all other objects.
+func ReadObject(hash string) (Object, error) {
+	objectPath, err := FindObject(hash)
+
+	if err != nil {
+		return Object{}, err
+	}
+
+	content, err := readCompressedFile(objectPath)
+
+	if err != nil {
+		panic(err)
+	}
+
+	nullIndex := bytes.IndexByte(content, 0)
+
+	if nullIndex == -1 {
+		panic("Object format unreadable.")
+	}
+
+	header := string(content[:nullIndex-1])
+	headerParts := strings.Split(header, " ")
+
+	if len(headerParts) < 2 {
+		panic("Unable to parse object header.")
+	}
+
+	return Object{Data: content[nullIndex:], ObjectType: headerParts[0]}, nil
 }
 
 func writeCompressedFile(filename string, uncompressedData []byte) error {
