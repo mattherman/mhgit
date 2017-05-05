@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"gopkg.in/alecthomas/kingpin.v2"
+	"github.com/mattherman/mhgit/command"
 
-	"github.com/mattherman/mhgit/objects"
+	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 var (
@@ -28,48 +28,21 @@ var (
 func main() {
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 	case initialize.FullCommand():
-		execInitializeRepo()
+		err := command.InitializeRepo()
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println("Initialized empty Git repository.")
+		}
 	case hashObject.FullCommand():
-		execHashObject(*hashObjectFile, *hashObjectWrite)
+		hash := command.HashObject(*hashObjectFile, *hashObjectWrite)
+		fmt.Println(hash)
 	case catFile.FullCommand():
-		execCatFile(*catFileObject)
+		obj, err := command.CatFile(*catFileObject)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Printf("%s : %s\n", obj.ObjectType, obj.Data)
+		}
 	}
-}
-
-func execInitializeRepo() {
-	if fileDoesNotExist("./.git") {
-		createInitialDirectoriesAndFiles()
-		fmt.Println("Initialized empty Git repository.")
-	} else {
-		fmt.Println("A git repository already exists in this directory.")
-	}
-}
-
-func execHashObject(filename string, write bool) {
-	hash := objects.HashFile(filename, write)
-	fmt.Println(hash)
-}
-
-func execCatFile(objectName string) {
-	obj, err := objects.ReadObject(objectName)
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		fmt.Printf("%s : %s\n", obj.ObjectType, obj.Data)
-	}
-}
-
-func createInitialDirectoriesAndFiles() {
-	os.Mkdir("./.git", 0700)
-	os.Mkdir("./.git/objects", 0700)
-	os.Mkdir("./.git/refs", 0700)
-	os.Mkdir("./.git/refs/heads", 0700)
-
-	f, _ := os.Create("./.git/HEAD")
-	f.Close()
-}
-
-func fileDoesNotExist(path string) bool {
-	_, err := os.Stat(path)
-	return os.IsNotExist(err)
 }
