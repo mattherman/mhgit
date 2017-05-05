@@ -42,12 +42,12 @@ func HashObject(objectToHash Object, write bool) string {
 
 	sha1 := computeSha1(fullData)
 
-	objectPath := filepath.Join("./.git/objects", sha1[:2])
-
-	os.Mkdir(objectPath, 0700)
-	fileName := filepath.Join(objectPath, sha1[2:])
-
 	if write {
+		objectPath := filepath.Join("./.git/objects", sha1[:2])
+
+		os.Mkdir(objectPath, 0700)
+		fileName := filepath.Join(objectPath, sha1[2:])
+
 		err := writeCompressedFile(fileName, fullData)
 
 		if err != nil {
