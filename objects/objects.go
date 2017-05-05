@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 // Object represents a Git object. It can be of type "blob",
@@ -74,7 +75,20 @@ func ReadObject(hash string) (Object, error) {
 			panic(err)
 		}
 
-		return Object{Data: content, ObjectType: "blob"}, nil
+		nullIndex := bytes.IndexByte(content, 0)
+
+		if nullIndex == -1 {
+			panic("Object format unreadable.")
+		}
+
+		header := string(content[:nullIndex-1])
+		headerParts := strings.Split(header, " ")
+
+		if len(headerParts) < 2 {
+			panic("Unable to parse object header.")
+		}
+
+		return Object{Data: content[nullIndex:], ObjectType: headerParts[0]}, nil
 	}
 }
 

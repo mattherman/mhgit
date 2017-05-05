@@ -26,7 +26,7 @@ func main() {
 		if err != nil {
 			fmt.Println(err)
 		}
-		fmt.Printf("%s\n", obj.Data)
+		fmt.Printf("%s : %s\n", obj.ObjectType, obj.Data)
 	}
 }
 
