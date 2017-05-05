@@ -20,6 +20,19 @@ type Object struct {
 	ObjectType string
 }
 
+// HashFile will compute the SHA1 hash of a file. If write is true, the
+// resulting object will be written to file.
+func HashFile(filename string, write bool) string {
+	fileContent, err := ioutil.ReadFile(filename)
+	if err != nil {
+		panic(err)
+	}
+
+	obj := Object{Data: fileContent, ObjectType: "blob"}
+
+	return HashObject(obj, write)
+}
+
 // HashObject will compute the SHA1 hash of the object and its headers.
 // If write is true, the object will be written to file with zlib compression.
 func HashObject(objectToHash Object, write bool) string {

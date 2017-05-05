@@ -18,16 +18,10 @@ func main() {
 	switch args[0] {
 	case "init":
 		initializeRepo()
-	case "hash":
-		hash := objects.HashObject(objects.Object{Data: []byte("what is up, doc?"), ObjectType: "blob"}, true)
-		fmt.Println(hash)
-	case "read":
-		obj, err := objects.ReadObject(args[1])
-		if err != nil {
-			fmt.Println(err)
-		} else {
-			fmt.Printf("%s : %s\n", obj.ObjectType, obj.Data)
-		}
+	case "hash-object":
+		hashObject(args[1])
+	case "cat-file":
+		catFile(args[1])
 	}
 }
 
@@ -37,6 +31,20 @@ func initializeRepo() {
 		fmt.Println("Initialized empty Git repository.")
 	} else {
 		fmt.Println("A git repository already exists in this directory.")
+	}
+}
+
+func hashObject(filename string) {
+	hash := objects.HashFile(filename, true)
+	fmt.Println(hash)
+}
+
+func catFile(hash string) {
+	obj, err := objects.ReadObject(hash)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Printf("%s : %s\n", obj.ObjectType, obj.Data)
 	}
 }
 
