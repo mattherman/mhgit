@@ -11,7 +11,8 @@ import (
 var (
 	app = kingpin.New("mhgit", "An implementation of Git written in Go.")
 
-	initialize = app.Command("init", "Create an empty Git repository or reinitialize an existing one.")
+	initialize          = app.Command("init", "Create an empty Git repository or reinitialize an existing one.")
+	initializeDirectory = initialize.Arg("directory", "An optional directory to create for the repository.").String()
 
 	hashObject      = app.Command("hash-object", "Compute object ID and optionally creates a blob from a file.")
 	hashObjectWrite = hashObject.Flag("write", "Whether or not to write the object to the Git object store.").Short('w').Bool()
@@ -30,7 +31,7 @@ func main() {
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 
 	case initialize.FullCommand():
-		command.InitializeRepo()
+		command.InitializeRepo(*initializeDirectory)
 
 	case hashObject.FullCommand():
 		command.HashObject(*hashObjectFile, *hashObjectWrite)
