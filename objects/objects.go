@@ -22,15 +22,15 @@ type Object struct {
 
 // HashFile will compute the SHA1 hash of a file. If write is true, the
 // resulting object will be written to file.
-func HashFile(filename string, write bool) string {
+func HashFile(filename string, write bool) (string, error) {
 	fileContent, err := ioutil.ReadFile(filename)
 	if err != nil {
-		panic(err)
+		return "", errors.New("The file was not found")
 	}
 
 	obj := Object{Data: fileContent, ObjectType: "blob"}
 
-	return HashObject(obj, write)
+	return HashObject(obj, write), nil
 }
 
 // HashObject will compute the SHA1 hash of the object and its headers.

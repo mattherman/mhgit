@@ -9,6 +9,11 @@ import (
 // HashObject will hash an existing file and write it to the object store
 // if desired.
 func HashObject(filename string, write bool) {
-	hash := objects.HashFile(filename, write)
-	fmt.Println(hash)
+	hash, err := objects.HashFile(filename, write)
+
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(hash)
+	}
 }
