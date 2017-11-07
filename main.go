@@ -37,7 +37,7 @@ func main() {
 		command.HashObject(*hashObjectFile, *hashObjectWrite)
 
 	case catFile.FullCommand():
-		command.CatFile(*catFileObject)
+		command.CatFile(*catFileObject, *catFilePretty, *catFileType, *catFileSize)
 	}
 
 }
