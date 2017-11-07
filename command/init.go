@@ -1,29 +1,36 @@
 package command
 
 import (
-	"errors"
+	"fmt"
 	"os"
 )
 
 // InitializeRepo will create an empty repository in the current directory
 // or return an error if one already exists.
-func InitializeRepo() error {
+func InitializeRepo() {
 	if !fileDoesNotExist("./.git") {
-		return errors.New("A git repository already exists in this directory")
+		fmt.Println("A git repository already exists in this directory")
+		return
 	}
 
-	createInitialDirectoriesAndFiles()
-	return nil
+	err := createInitialDirectoriesAndFiles()
+	if err != nil {
+		fmt.Println("Unable to create necessary files in .git directory.")
+	} else {
+		fmt.Println("Initialized empty Git repository.")
+	}
 }
 
-func createInitialDirectoriesAndFiles() {
+func createInitialDirectoriesAndFiles() error {
 	os.Mkdir("./.git", 0700)
 	os.Mkdir("./.git/objects", 0700)
 	os.Mkdir("./.git/refs", 0700)
 	os.Mkdir("./.git/refs/heads", 0700)
 
-	f, _ := os.Create("./.git/HEAD")
+	f, err := os.Create("./.git/HEAD")
 	f.Close()
+
+	return err
 }
 
 func fileDoesNotExist(path string) bool {

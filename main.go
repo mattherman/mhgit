@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/mattherman/mhgit/command"
@@ -31,24 +30,13 @@ func main() {
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 
 	case initialize.FullCommand():
-		err := command.InitializeRepo()
-		if err != nil {
-			fmt.Println(err)
-		} else {
-			fmt.Println("Initialized empty Git repository.")
-		}
+		command.InitializeRepo()
 
 	case hashObject.FullCommand():
-		hash := command.HashObject(*hashObjectFile, *hashObjectWrite)
-		fmt.Println(hash)
+		command.HashObject(*hashObjectFile, *hashObjectWrite)
 
 	case catFile.FullCommand():
-		obj, err := command.CatFile(*catFileObject)
-		if err != nil {
-			fmt.Println(err)
-		} else {
-			fmt.Printf("%s : %s\n", obj.ObjectType, obj.Data)
-		}
+		command.CatFile(*catFileObject)
 	}
 
 }
