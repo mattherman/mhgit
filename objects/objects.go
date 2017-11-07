@@ -30,12 +30,12 @@ func HashFile(filename string, write bool) (string, error) {
 
 	obj := Object{Data: fileContent, ObjectType: "blob"}
 
-	return HashObject(obj, write), nil
+	return HashObject(obj, write)
 }
 
 // HashObject will compute the SHA1 hash of the object and its headers.
 // If write is true, the object will be written to file with zlib compression.
-func HashObject(objectToHash Object, write bool) string {
+func HashObject(objectToHash Object, write bool) (string, error) {
 	header := []byte(objectToHash.ObjectType + " " + strconv.Itoa(len(objectToHash.Data)) + "\000")
 
 	fullData := append(header, objectToHash.Data...)
@@ -51,11 +51,11 @@ func HashObject(objectToHash Object, write bool) string {
 		err := writeCompressedFile(fileName, fullData)
 
 		if err != nil {
-			panic(err)
+			return sha1, errors.New("Object hash calculated, but unable to write to database")
 		}
 	}
 
-	return sha1
+	return sha1, nil
 }
 
 func computeSha1(data []byte) string {
