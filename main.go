@@ -24,6 +24,9 @@ var (
 	catFileType   = catFile.Flag("type", "Output the type of the object.").Short('t').Bool()
 	catFileSize   = catFile.Flag("size", "Output the size of the object.").Short('s').Bool()
 	catFileObject = catFile.Arg("object", "The hash of the object to show.").Required().String()
+
+	updateIndex     = app.Command("update-index", "Register file contents in the working tree to the index.")
+	updateIndexFile = updateIndex.Arg("file", "The file to update in the index.").Required().String()
 )
 
 func main() {
@@ -38,6 +41,10 @@ func main() {
 
 	case catFile.FullCommand():
 		command.CatFile(*catFileObject, *catFilePretty, *catFileType, *catFileSize)
+
+	case updateIndex.FullCommand():
+		command.UpdateIndex(*updateIndexFile)
+
 	}
 
 }
