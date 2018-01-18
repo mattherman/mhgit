@@ -3,14 +3,14 @@ package objects
 import (
 	"bytes"
 	"compress/zlib"
-	"crypto/sha1"
-	"encoding/hex"
 	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/mattherman/mhgit/utils"
 )
 
 // Object represents a Git object. It can be of type "blob",
@@ -18,6 +18,32 @@ import (
 type Object struct {
 	Data       []byte
 	ObjectType string
+}
+
+// Index represents the git index
+type Index struct {
+	Signature  string
+	Version    uint32
+	EntryCount uint32
+	Entries    []IndexEntry
+	Checksum   string
+}
+
+// IndexEntry represents a file in the git index.
+type IndexEntry struct {
+	CTimeSec  int32
+	CTimeNano int32
+	MTimeSec  int32
+	MTimeNano int32
+	Dev       int32
+	Ino       int32
+	Mode      int32
+	UID       int32
+	GID       int32
+	FileSize  int32
+	Hash      string
+	Flags     int16
+	Path      string
 }
 
 // HashFile will compute the SHA1 hash of a file. If write is true, the
@@ -40,7 +66,7 @@ func HashObject(objectToHash Object, write bool) (string, error) {
 
 	fullData := append(header, objectToHash.Data...)
 
-	sha1 := computeSha1(fullData)
+	sha1 := utils.ComputeSha1(fullData)
 
 	if write {
 		objectPath := filepath.Join("./.git/objects", sha1[:2])
@@ -56,12 +82,6 @@ func HashObject(objectToHash Object, write bool) (string, error) {
 	}
 
 	return sha1, nil
-}
-
-func computeSha1(data []byte) string {
-	hasher := sha1.New()
-	hasher.Write(data)
-	return hex.EncodeToString(hasher.Sum(nil))
 }
 
 // FindObject will attempt to find an object using the given prefix and

@@ -4,13 +4,15 @@ import (
 	"fmt"
 	"os"
 	"path"
+
+	"github.com/mattherman/mhgit/utils"
 )
 
 // InitializeRepo will create an empty repository in the current directory
 // or return an error if one already exists.
 func InitializeRepo(directory string) {
 	gitDir := path.Join(directory, ".git")
-	if !fileDoesNotExist(gitDir) {
+	if !utils.FileDoesNotExist(gitDir) {
 		fmt.Println("A git repository already exists in this directory")
 		return
 	}
@@ -32,9 +34,4 @@ func createInitialDirectoriesAndFiles(gitDir string) error {
 	f.Close()
 
 	return err
-}
-
-func fileDoesNotExist(path string) bool {
-	_, err := os.Stat(path)
-	return os.IsNotExist(err)
 }

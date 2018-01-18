@@ -19,18 +19,7 @@ func CatFile(objectName string, outputObject bool, outputType bool, outputSize b
 		} else if outputSize {
 			fmt.Printf("%d\n", len(obj.Data))
 		} else {
-			prettyPrint(obj)
+			fmt.Printf("%s", obj.Data)
 		}
-	}
-}
-
-func prettyPrint(obj objects.Object) {
-	switch obj.ObjectType {
-	case "blob":
-		fmt.Printf("%s\n", obj.Data)
-	case "tree":
-		fmt.Println("Its a tree!")
-	case "commit":
-		fmt.Println("Commmmmmiiiiiittt")
 	}
 }

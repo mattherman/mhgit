@@ -27,6 +27,9 @@ var (
 
 	updateIndex     = app.Command("update-index", "Register file contents in the working tree to the index.")
 	updateIndexFile = updateIndex.Arg("file", "The file to update in the index.").Required().String()
+
+	readIndex      = app.Command("ls-files", "Show information about files in the index and the working tree")
+	readIndexStage = readIndex.Flag("stage", "Show staged contents' mode bits, object name, and stage number in the output").Short('s').Bool()
 )
 
 func main() {
@@ -45,6 +48,8 @@ func main() {
 	case updateIndex.FullCommand():
 		command.UpdateIndex(*updateIndexFile)
 
+	case readIndex.FullCommand():
+		command.ReadIndex(*readIndexStage)
 	}
 
 }
