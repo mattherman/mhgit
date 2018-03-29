@@ -29,12 +29,14 @@ func init() {
 // or return an error if one already exists.
 func InitializeRepo(directory string) {
 	gitDir := path.Join(directory, ".git")
-	if !fileDoesNotExist(gitDir) {
+
+	_, err := os.Stat(gitDir)
+	if err == nil {
 		fmt.Println("A git repository already exists in this directory")
 		return
 	}
 
-	err := createInitialDirectoriesAndFiles(gitDir)
+	err = createInitialDirectoriesAndFiles(gitDir)
 	if err != nil {
 		fmt.Println("Unable to create necessary files in .git directory.")
 	} else {
