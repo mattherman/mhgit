@@ -10,6 +10,10 @@ import (
 	"github.com/mattherman/mhgit/objects"
 )
 
+const fixedSizeIndexEntryLength int = 62
+const checksumLength int = 20
+const indexFile string = ".git/index"
+
 // Index represents the git index
 type Index struct {
 	Signature  string
@@ -76,13 +80,33 @@ func (e fixedSizeIndexEntry) toFullEntry(path string) IndexEntry {
 	}
 }
 
-const fixedSizeIndexEntryLength int = 62
+func (e IndexEntry) toFixedSizeEntry(path string) fixedSizeIndexEntry {
+
+	var hashArray [20]byte
+	hashBytes, _ := hex.DecodeString(e.Hash)
+	copy(hashArray[:], hashBytes)
+
+	flags := uint16(len(path)) & 0x0FFF
+
+	return fixedSizeIndexEntry{
+		CTimeSec:  e.CTimeSec,
+		CTimeNano: e.CTimeNano,
+		MTimeSec:  e.MTimeSec,
+		MTimeNano: e.MTimeNano,
+		Dev:       e.Dev,
+		Ino:       e.Ino,
+		Mode:      e.Mode,
+		UID:       e.UID,
+		GID:       e.GID,
+		FileSize:  e.FileSize,
+		Hash:      hashArray,
+		Flags:     flags,
+	}
+}
 
 // ReadIndex will show information about files in the
 // index and the working tree
 func ReadIndex() Index {
-	indexFile := ".git/index"
-
 	_, err := os.Stat(indexFile)
 	if os.IsNotExist(err) {
 		return Index{
@@ -102,14 +126,14 @@ func ReadIndex() Index {
 	index := Index{}
 
 	headerBytes := indexBytes[0:12]
-	checksumBytes := indexBytes[(indexSize - 20):]
+	checksumBytes := indexBytes[(indexSize - checksumLength):]
 
 	index.Signature = string(headerBytes[0:4])
 	index.Version = binary.BigEndian.Uint32(headerBytes[4:8])
 	index.EntryCount = binary.BigEndian.Uint32(headerBytes[8:12])
 	index.Checksum = hex.EncodeToString(checksumBytes)
 
-	digest := objects.ComputeSha1(indexBytes[:(indexSize - 20)])
+	digest := objects.ComputeSha1(indexBytes[:(indexSize - checksumLength)])
 	if digest != index.Checksum {
 		panic("Index content did not match the checksum")
 	}
@@ -117,7 +141,7 @@ func ReadIndex() Index {
 	index.Entries = make([]IndexEntry, index.EntryCount)
 	if index.EntryCount > 0 {
 
-		entryListBytes := indexBytes[12:(indexSize - 20)]
+		entryListBytes := indexBytes[12:(indexSize - checksumLength)]
 
 		entryIndex := 0
 		for i := 0; i < int(index.EntryCount); i++ {
@@ -165,4 +189,51 @@ func readIndexEntry(entryBytes []byte) fixedSizeIndexEntry {
 	}
 
 	return fixedSizeEntry
+}
+
+// WriteIndex will write the index file with the specified entries
+func WriteIndex(entries []IndexEntry) error {
+	index := Index{
+		Signature:  "DIRC",
+		Version:    2,
+		EntryCount: uint32(len(entries)),
+		Entries:    entries,
+	}
+
+	f, err := os.Create(indexFile)
+	defer f.Close()
+	if err != nil {
+		return err
+	}
+
+	var header [12]byte
+	copy(header[0:4], index.Signature)
+	binary.BigEndian.PutUint32(header[4:8], index.Version)
+	binary.BigEndian.PutUint32(header[8:12], index.EntryCount)
+
+	var entryBuffer bytes.Buffer
+	for _, entry := range index.Entries {
+		// Write the fixed size portion of the entry to the buffer, followed by the path
+		binary.Write(&entryBuffer, binary.BigEndian, entry.toFixedSizeEntry(entry.Path))
+		binary.Write(&entryBuffer, binary.BigEndian, []byte(entry.Path))
+
+		// Add enough null padding to extend the entry to a multiple of 8 bytes with null-termination
+		entryLength := fixedSizeIndexEntryLength + len(entry.Path)
+		binary.Write(&entryBuffer, binary.BigEndian, make([]byte, nullPaddingLength(entryLength)))
+	}
+
+	indexAndEntries := append(header[:], entryBuffer.Bytes()...)
+	checksum := objects.ComputeSha1(indexAndEntries)
+	checksumBytes, err := hex.DecodeString(checksum)
+	if err != nil {
+		return err
+	}
+
+	fullIndex := append(indexAndEntries, checksumBytes...)
+	_, err = f.Write(fullIndex)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

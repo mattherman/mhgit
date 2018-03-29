@@ -12,3 +12,6 @@
 
 # Output of `go build`
 mhgit
+
+# Editor specific files
+.vscode/
