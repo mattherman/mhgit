@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
-	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -81,12 +80,7 @@ const fixedSizeIndexEntryLength int = 62
 
 // ReadIndex will show information about files in the
 // index and the working tree
-func ReadIndex(stage bool) {
-	index := readIndexFile()
-	fmt.Printf("\n%+v", index)
-}
-
-func readIndexFile() Index {
+func ReadIndex() Index {
 	indexFile := ".git/index"
 
 	_, err := os.Stat(indexFile)

@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/mattherman/mhgit/index"
 	"github.com/spf13/cobra"
 )
@@ -10,7 +12,12 @@ var lsFilesCmd = &cobra.Command{
 	Use:   "ls-files",
 	Short: "Show information about files in the index and the working tree",
 	Run: func(cmd *cobra.Command, args []string) {
-		index.ReadIndex(showStaged)
+		index := index.ReadIndex()
+		if showStaged {
+			for _, entry := range index.Entries {
+				fmt.Printf("%o %s 0\t %s\n", entry.Mode, entry.Hash, entry.Path)
+			}
+		}
 	},
 }
 
