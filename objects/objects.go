@@ -42,7 +42,7 @@ type IndexEntry struct {
 	GID       int32
 	FileSize  int32
 	Hash      string
-	Flags     int16
+	Flags     [2]byte
 	Path      string
 }
 
