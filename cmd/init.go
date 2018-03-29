@@ -50,7 +50,11 @@ func createInitialDirectoriesAndFiles(gitDir string) error {
 	os.MkdirAll(path.Join(gitDir, "refs", "heads"), 0700)
 
 	f, err := os.Create(path.Join(gitDir, "HEAD"))
-	f.Close()
+	defer f.Close()
+
+	if err == nil {
+		_, err = f.WriteString("ref: refs/heads/master\n")
+	}
 
 	return err
 }
