@@ -20,32 +20,6 @@ type Object struct {
 	ObjectType string
 }
 
-// Index represents the git index
-type Index struct {
-	Signature  string
-	Version    uint32
-	EntryCount uint32
-	Entries    []IndexEntry
-	Checksum   string
-}
-
-// IndexEntry represents a file in the git index.
-type IndexEntry struct {
-	CTimeSec  int32
-	CTimeNano int32
-	MTimeSec  int32
-	MTimeNano int32
-	Dev       int32
-	Ino       int32
-	Mode      int32
-	UID       int32
-	GID       int32
-	FileSize  int32
-	Hash      string
-	Flags     [2]byte
-	Path      string
-}
-
 // HashFile will compute the SHA1 hash of a file. If write is true, the
 // resulting object will be written to file.
 func HashFile(filename string, write bool) (string, error) {
