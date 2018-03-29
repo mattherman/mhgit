@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 
 	"github.com/mattherman/mhgit/objects"
-	"github.com/mattherman/mhgit/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -38,7 +37,7 @@ func ReadIndex(stage bool) {
 func readIndexFile() objects.Index {
 	indexFile := ".git/index"
 
-	if utils.FileDoesNotExist(indexFile) {
+	if fileDoesNotExist(indexFile) {
 		return objects.Index{
 			Signature:  "DIRC",
 			Version:    0,
@@ -63,7 +62,7 @@ func readIndexFile() objects.Index {
 	index.EntryCount = binary.BigEndian.Uint32(headerBytes[8:12])
 	index.Checksum = hex.EncodeToString(checksumBytes)
 
-	digest := utils.ComputeSha1(indexBytes[:(indexSize - 20)])
+	digest := objects.ComputeSha1(indexBytes[:(indexSize - 20)])
 	if digest != index.Checksum {
 		panic("Index content did not match the checksum")
 	}
@@ -134,7 +133,7 @@ func readIndexEntry(entryBytes []byte) objects.IndexEntry {
 		UID:       fixedSizeEntry.UID,
 		GID:       fixedSizeEntry.GID,
 		FileSize:  fixedSizeEntry.FileSize,
-		Hash:      utils.ComputeSha1(fixedSizeEntry.Hash[:]),
+		Hash:      objects.ComputeSha1(fixedSizeEntry.Hash[:]),
 		Path:      path,
 	}
 }

@@ -3,14 +3,14 @@ package objects
 import (
 	"bytes"
 	"compress/zlib"
+	"crypto/sha1"
+	"encoding/hex"
 	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
-
-	"github.com/mattherman/mhgit/utils"
 )
 
 // Object represents a Git object. It can be of type "blob",
@@ -66,7 +66,7 @@ func HashObject(objectToHash Object, write bool) (string, error) {
 
 	fullData := append(header, objectToHash.Data...)
 
-	sha1 := utils.ComputeSha1(fullData)
+	sha1 := ComputeSha1(fullData)
 
 	if write {
 		objectPath := filepath.Join("./.git/objects", sha1[:2])
@@ -82,6 +82,14 @@ func HashObject(objectToHash Object, write bool) (string, error) {
 	}
 
 	return sha1, nil
+}
+
+// ComputeSha1 returns the SHA-1 hash of the
+// provided byte array as a string.
+func ComputeSha1(data []byte) string {
+	hasher := sha1.New()
+	hasher.Write(data)
+	return hex.EncodeToString(hasher.Sum(nil))
 }
 
 // FindObject will attempt to find an object using the given prefix and

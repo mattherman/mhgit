@@ -5,7 +5,6 @@ import (
 	"os"
 	"path"
 
-	"github.com/mattherman/mhgit/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -30,7 +29,7 @@ func init() {
 // or return an error if one already exists.
 func InitializeRepo(directory string) {
 	gitDir := path.Join(directory, ".git")
-	if !utils.FileDoesNotExist(gitDir) {
+	if !fileDoesNotExist(gitDir) {
 		fmt.Println("A git repository already exists in this directory")
 		return
 	}
