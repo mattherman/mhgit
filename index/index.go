@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"io/ioutil"
 	"os"
+	"sort"
 
 	"github.com/mattherman/mhgit/objects"
 )
@@ -193,6 +194,10 @@ func readIndexEntry(entryBytes []byte) fixedSizeIndexEntry {
 
 // WriteIndex will write the index file with the specified entries
 func WriteIndex(entries []IndexEntry) error {
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Path < entries[j].Path
+	})
+
 	index := Index{
 		Signature:  "DIRC",
 		Version:    2,
@@ -236,4 +241,16 @@ func WriteIndex(entries []IndexEntry) error {
 	}
 
 	return nil
+}
+
+// Exists returns whether or not the provided filepath is present
+// in the index
+func Exists(filepath string) bool {
+	index := ReadIndex()
+	for _, entry := range index.Entries {
+		if filepath == entry.Path {
+			return true
+		}
+	}
+	return false
 }
