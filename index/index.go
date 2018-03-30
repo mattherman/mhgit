@@ -12,9 +12,11 @@ import (
 	"github.com/mattherman/mhgit/objects"
 )
 
-const fixedSizeIndexEntryLength int = 62
-const checksumLength int = 20
-const indexFile string = ".git/index"
+const (
+	fixedSizeIndexEntryLength int    = 62
+	checksumLength            int    = 20
+	indexFile                 string = ".git/index"
+)
 
 // Index represents the git index
 type Index struct {
@@ -40,70 +42,6 @@ type Entry struct {
 	Hash      string
 	Flags     uint16
 	Path      string
-}
-
-// Represents an IndexEntry type with only fixed size
-// properties for easier parsing. In this type hash property is
-// represented as a 20-byte slice instead of the hex string
-// and path is ommitted since it is variable length.
-type fixedSizeIndexEntry struct {
-	CTimeSec  int32
-	CTimeNano int32
-	MTimeSec  int32
-	MTimeNano int32
-	Dev       int32
-	Ino       int32
-	Mode      int32
-	UID       int32
-	GID       int32
-	FileSize  int32
-	Hash      [20]byte
-	Flags     uint16
-}
-
-func (e fixedSizeIndexEntry) getPathLength() int {
-	return int(e.Flags & 0x0FFF)
-}
-
-func (e fixedSizeIndexEntry) toFullEntry(path string) Entry {
-	return Entry{
-		CTimeSec:  e.CTimeSec,
-		CTimeNano: e.CTimeNano,
-		MTimeSec:  e.MTimeSec,
-		MTimeNano: e.MTimeNano,
-		Dev:       e.Dev,
-		Ino:       e.Ino,
-		Mode:      e.Mode,
-		UID:       e.UID,
-		GID:       e.GID,
-		FileSize:  e.FileSize,
-		Hash:      hex.EncodeToString(e.Hash[:]),
-		Path:      path,
-	}
-}
-
-func (e Entry) toFixedSizeEntry(path string) fixedSizeIndexEntry {
-
-	var hashArray [20]byte
-	hashBytes, _ := hex.DecodeString(e.Hash)
-	copy(hashArray[:], hashBytes)
-
-	flags := uint16(len(path)) & 0x0FFF
-
-	return fixedSizeIndexEntry{
-		CTimeSec:  e.CTimeSec,
-		CTimeNano: e.CTimeNano,
-		MTimeSec:  e.MTimeSec,
-		MTimeNano: e.MTimeNano,
-		Dev:       e.Dev,
-		Ino:       e.Ino,
-		Mode:      e.Mode,
-		UID:       e.UID,
-		GID:       e.GID,
-		FileSize:  e.FileSize,
-		Hash:      hashArray,
-		Flags:     flags,
-	}
 }
 
 // NewEntry will create a new index entry based on the filepath given.
@@ -152,6 +90,114 @@ func newEntry(filepath string, hash string) (Entry, error) {
 		Hash:      hash,
 		Path:      filepath,
 	}, nil
+}
+
+func (e Entry) toFixedSizeEntry(path string) fixedSizeIndexEntry {
+
+	var hashArray [20]byte
+	hashBytes, _ := hex.DecodeString(e.Hash)
+	copy(hashArray[:], hashBytes)
+
+	flags := uint16(len(path)) & 0x0FFF
+
+	return fixedSizeIndexEntry{
+		CTimeSec:  e.CTimeSec,
+		CTimeNano: e.CTimeNano,
+		MTimeSec:  e.MTimeSec,
+		MTimeNano: e.MTimeNano,
+		Dev:       e.Dev,
+		Ino:       e.Ino,
+		Mode:      e.Mode,
+		UID:       e.UID,
+		GID:       e.GID,
+		FileSize:  e.FileSize,
+		Hash:      hashArray,
+		Flags:     flags,
+	}
+}
+
+// Represents an IndexEntry type with only fixed size
+// properties for easier parsing. In this type hash property is
+// represented as a 20-byte slice instead of the hex string
+// and path is ommitted since it is variable length.
+type fixedSizeIndexEntry struct {
+	CTimeSec  int32
+	CTimeNano int32
+	MTimeSec  int32
+	MTimeNano int32
+	Dev       int32
+	Ino       int32
+	Mode      int32
+	UID       int32
+	GID       int32
+	FileSize  int32
+	Hash      [20]byte
+	Flags     uint16
+}
+
+func (e fixedSizeIndexEntry) getPathLength() int {
+	return int(e.Flags & 0x0FFF)
+}
+
+func (e fixedSizeIndexEntry) toFullEntry(path string) Entry {
+	return Entry{
+		CTimeSec:  e.CTimeSec,
+		CTimeNano: e.CTimeNano,
+		MTimeSec:  e.MTimeSec,
+		MTimeNano: e.MTimeNano,
+		Dev:       e.Dev,
+		Ino:       e.Ino,
+		Mode:      e.Mode,
+		UID:       e.UID,
+		GID:       e.GID,
+		FileSize:  e.FileSize,
+		Hash:      hex.EncodeToString(e.Hash[:]),
+		Path:      path,
+	}
+}
+
+// Add will add the specified file to the index if it exists
+// in the working directory
+func Add(filepath string) error {
+	_, err := os.Stat(filepath)
+	if os.IsNotExist(err) {
+		return err
+	}
+
+	hash, err := objects.HashFile(filepath, true)
+	if err != nil {
+		return err
+	}
+
+	entry, err := newEntry(filepath, hash)
+	if err != nil {
+		return err
+	}
+
+	index := ReadIndex()
+	entryIndex := findEntry(index, filepath)
+
+	if entryIndex != -1 {
+		index.Entries[entryIndex] = entry
+	} else {
+		index.Entries = append(index.Entries, []Entry{entry}...)
+	}
+	// TODO add to index instead of overwriting it
+	err = writeIndex(index.Entries)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func findEntry(index Index, path string) int {
+	for i, entry := range index.Entries {
+		if entry.Path == path {
+			return i
+		}
+	}
+	return -1
 }
 
 // ReadIndex will show information about files in the
@@ -217,17 +263,6 @@ func ReadIndex() Index {
 	return index
 }
 
-// Determines the number of bytes necessary to extend the given
-// byte length to a multiple of 8 while ensuring it is suffixed
-// by at least one null byte.
-// Ex.
-// 		nullPaddingLength(7) => 1
-// 		nullPaddingLength(8) => 8
-// 		nullPaddingLength(9) => 7
-func nullPaddingLength(pathLength int) int {
-	return 8 - (pathLength % 8)
-}
-
 func readIndexEntry(entryBytes []byte) fixedSizeIndexEntry {
 	fixedSizeEntry := fixedSizeIndexEntry{}
 	entryWithoutPath := entryBytes[:62]
@@ -239,6 +274,17 @@ func readIndexEntry(entryBytes []byte) fixedSizeIndexEntry {
 	}
 
 	return fixedSizeEntry
+}
+
+// Determines the number of bytes necessary to extend the given
+// byte length to a multiple of 8 while ensuring it is suffixed
+// by at least one null byte.
+// Ex.
+// 		nullPaddingLength(7) => 1
+// 		nullPaddingLength(8) => 8
+// 		nullPaddingLength(9) => 7
+func nullPaddingLength(pathLength int) int {
+	return 8 - (pathLength % 8)
 }
 
 // WriteIndex will write the index file with the specified entries
@@ -294,60 +340,4 @@ func writeIndexEntry(buffer *bytes.Buffer, entry Entry) {
 	// Add enough null padding to extend the entry to a multiple of 8 bytes with null-termination
 	entryLength := fixedSizeIndexEntryLength + len(entry.Path)
 	binary.Write(buffer, binary.BigEndian, make([]byte, nullPaddingLength(entryLength)))
-}
-
-// Exists returns whether or not the provided filepath is present
-// in the index
-func Exists(filepath string) bool {
-	index := ReadIndex()
-	for _, entry := range index.Entries {
-		if filepath == entry.Path {
-			return true
-		}
-	}
-	return false
-}
-
-// Add will add the specified file to the index if it exists
-// in the working directory
-func Add(filepath string) error {
-	_, err := os.Stat(filepath)
-	if os.IsNotExist(err) {
-		return err
-	}
-
-	hash, err := objects.HashFile(filepath, true)
-	if err != nil {
-		return err
-	}
-
-	entry, err := newEntry(filepath, hash)
-	if err != nil {
-		return err
-	}
-
-	index := ReadIndex()
-	entryIndex := findEntry(index, filepath)
-
-	if entryIndex != -1 {
-		index.Entries[entryIndex] = entry
-	} else {
-		index.Entries = append(index.Entries, []Entry{entry}...)
-	}
-	// TODO add to index instead of overwriting it
-	err = writeIndex(index.Entries)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func findEntry(index Index, path string) int {
-	for i, entry := range index.Entries {
-		if entry.Path == path {
-			return i
-		}
-	}
-	return -1
 }
