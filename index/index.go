@@ -326,11 +326,28 @@ func Add(filepath string) error {
 		return err
 	}
 
+	index := ReadIndex()
+	entryIndex := findEntry(index, filepath)
+
+	if entryIndex != -1 {
+		index.Entries[entryIndex] = entry
+	} else {
+		index.Entries = append(index.Entries, []Entry{entry}...)
+	}
 	// TODO add to index instead of overwriting it
-	err = writeIndex([]Entry{entry})
+	err = writeIndex(index.Entries)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func findEntry(index Index, path string) int {
+	for i, entry := range index.Entries {
+		if entry.Path == path {
+			return i
+		}
+	}
+	return -1
 }
