@@ -6,6 +6,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -18,6 +19,26 @@ import (
 type Object struct {
 	Data       []byte
 	ObjectType string
+}
+
+// Type returns the object type
+func (o Object) Type() string {
+	return o.ObjectType
+}
+
+// Size returns the object size
+func (o Object) Size() int {
+	return len(o.Data)
+}
+
+// String prints the object based on its type
+func (o Object) String() string {
+	if o.ObjectType != "tree" {
+		return fmt.Sprintf("%s", o.Data)
+	}
+
+	// TODO properly parse the tree and output it
+	return fmt.Sprintf("%s", o.Data)
 }
 
 // HashFile will compute the SHA1 hash of a file. If write is true, the
@@ -144,6 +165,7 @@ func readCompressedFile(filename string) ([]byte, error) {
 	}
 
 	result, err := ioutil.ReadAll(r)
+	err = ioutil.WriteFile("read-object-results", result, 0644)
 	if err != nil {
 		panic(err)
 	}

@@ -37,11 +37,11 @@ func CatFile(objectName string, outputObject bool, outputType bool, outputSize b
 		fmt.Println(err)
 	} else {
 		if outputType {
-			fmt.Println(obj.ObjectType)
+			fmt.Println(obj.Type())
 		} else if outputSize {
-			fmt.Printf("%d\n", len(obj.Data))
+			fmt.Printf("%d\n", obj.Size())
 		} else {
-			fmt.Printf("%s", obj.Data)
+			fmt.Printf("%v\n", obj)
 		}
 	}
 }
