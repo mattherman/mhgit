@@ -242,7 +242,7 @@ func readIndexEntry(entryBytes []byte) fixedSizeIndexEntry {
 }
 
 // WriteIndex will write the index file with the specified entries
-func WriteIndex(entries []Entry) error {
+func writeIndex(entries []Entry) error {
 	sort.Slice(entries, func(i, j int) bool {
 		return entries[i].Path < entries[j].Path
 	})
@@ -267,13 +267,7 @@ func WriteIndex(entries []Entry) error {
 
 	var entryBuffer bytes.Buffer
 	for _, entry := range index.Entries {
-		// Write the fixed size portion of the entry to the buffer, followed by the path
-		binary.Write(&entryBuffer, binary.BigEndian, entry.toFixedSizeEntry(entry.Path))
-		binary.Write(&entryBuffer, binary.BigEndian, []byte(entry.Path))
-
-		// Add enough null padding to extend the entry to a multiple of 8 bytes with null-termination
-		entryLength := fixedSizeIndexEntryLength + len(entry.Path)
-		binary.Write(&entryBuffer, binary.BigEndian, make([]byte, nullPaddingLength(entryLength)))
+		writeIndexEntry(&entryBuffer, entry)
 	}
 
 	indexAndEntries := append(header[:], entryBuffer.Bytes()...)
@@ -290,6 +284,16 @@ func WriteIndex(entries []Entry) error {
 	}
 
 	return nil
+}
+
+func writeIndexEntry(buffer *bytes.Buffer, entry Entry) {
+	// Write the fixed size portion of the entry to the buffer, followed by the path
+	binary.Write(buffer, binary.BigEndian, entry.toFixedSizeEntry(entry.Path))
+	binary.Write(buffer, binary.BigEndian, []byte(entry.Path))
+
+	// Add enough null padding to extend the entry to a multiple of 8 bytes with null-termination
+	entryLength := fixedSizeIndexEntryLength + len(entry.Path)
+	binary.Write(buffer, binary.BigEndian, make([]byte, nullPaddingLength(entryLength)))
 }
 
 // Exists returns whether or not the provided filepath is present
@@ -323,7 +327,7 @@ func Add(filepath string) error {
 	}
 
 	// TODO add to index instead of overwriting it
-	err = WriteIndex([]Entry{entry})
+	err = writeIndex([]Entry{entry})
 	if err != nil {
 		return err
 	}
