@@ -15,7 +15,12 @@ var writeTreeCmd = &cobra.Command{
 	Use:   "write-tree",
 	Short: "Create a tree object from the current index",
 	Run: func(cmd *cobra.Command, args []string) {
-		writeTree()
+		hash, err := writeTree()
+		if err != nil {
+			fmt.Printf("Failed to write the tree to the database: %v\n", err)
+		} else {
+			fmt.Printf("%s\n", hash)
+		}
 	},
 }
 
@@ -23,10 +28,10 @@ func init() {
 	rootCmd.AddCommand(writeTreeCmd)
 }
 
-func writeTree() {
+func writeTree() (string, error) {
 	index, err := index.ReadIndex()
 	if err != nil {
-		fmt.Printf("Failed to read index: %v\n", err)
+		return "", err
 	}
 
 	var blobBytes []byte
@@ -40,9 +45,5 @@ func writeTree() {
 	obj := objects.Object{ObjectType: "tree", Data: blobBytes}
 
 	hash, err := objects.HashObject(obj, true)
-	if err != nil {
-		fmt.Printf("Failed to write the tree to the database: %v\n", err)
-	} else {
-		fmt.Printf("%s\n", hash)
-	}
+	return hash, err
 }

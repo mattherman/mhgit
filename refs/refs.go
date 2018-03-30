@@ -1,6 +1,7 @@
 package refs
 
 import (
+	"fmt"
 	"io/ioutil"
 	"strings"
 )
@@ -18,8 +19,41 @@ func CurrentBranch() (string, error) {
 
 	if match {
 		splitHeadString := strings.Split(headString, "/")
-		return splitHeadString[2], nil
+		return strings.Trim(splitHeadString[2], " \n"), nil
 	}
 
 	return "", nil
+}
+
+// LatestCommit will return the latest commit hash of the current branch
+func LatestCommit() (string, error) {
+	branch, err := CurrentBranch()
+	if err != nil {
+		return "", err
+	}
+
+	filename := fmt.Sprintf(".git/refs/heads/%s", branch)
+	bytes, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return "", err
+	}
+
+	return strings.Trim(string(bytes), " \n"), nil
+}
+
+// UpdateLatestCommit will update the latest commit of the current branch
+// to equal the provided hash.
+func UpdateLatestCommit(commitHash string) error {
+	branch, err := CurrentBranch()
+	if err != nil {
+		return err
+	}
+
+	filename := fmt.Sprintf(".git/refs/heads/%s", branch)
+	err = ioutil.WriteFile(filename, []byte(commitHash+"\n"), 0644)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
