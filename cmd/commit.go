@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/mattherman/mhgit/objects"
 	"github.com/mattherman/mhgit/refs"
@@ -41,11 +42,14 @@ func commit(message string) error {
 		parent = fmt.Sprintf("parent %s\n", latestCommit)
 	}
 
-	// TODO do not hardcode this junk
-	author := "Matthew Herman <mattherman11@gmail.com> 1493552135 -0500"
-	committer := "committer Matthew Herman <mattherman11@gmail.com> 1493552135 -0500"
+	time := time.Now()
+	unixTimestamp := int32(time.Unix())
+	_, timeZoneOffset := time.Zone()
+	formattedTimeZoneOffset := fmt.Sprintf("%03d00", timeZoneOffset/60/60)
 
-	fullCommit := fmt.Sprintf("tree %s\n%sauthor %s\ncommitter %s\n\n%s\n", treeHash, parent, author, committer, message)
+	// TODO do not hardcode name/email
+	author := fmt.Sprintf("Matthew Herman <mattherman11@gmail.com> %d %s", unixTimestamp, formattedTimeZoneOffset)
+	fullCommit := fmt.Sprintf("tree %s\n%sauthor %s\ncommitter %s\n\n%s\n", treeHash, parent, author, author, message)
 	fullCommitBytes := []byte(fullCommit)
 
 	obj := objects.Object{ObjectType: "commit", Data: fullCommitBytes}
