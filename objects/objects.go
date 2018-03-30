@@ -165,7 +165,6 @@ func readCompressedFile(filename string) ([]byte, error) {
 	}
 
 	result, err := ioutil.ReadAll(r)
-	err = ioutil.WriteFile("read-object-results", result, 0644)
 	if err != nil {
 		panic(err)
 	}
