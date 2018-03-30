@@ -19,7 +19,7 @@ func CurrentBranch() (string, error) {
 
 	if match {
 		splitHeadString := strings.Split(headString, "/")
-		return strings.Trim(splitHeadString[2], " \n"), nil
+		return splitHeadString[2], nil
 	}
 
 	return "", nil
@@ -38,7 +38,7 @@ func LatestCommit() (string, error) {
 		return "", err
 	}
 
-	return strings.Trim(string(bytes), " \n"), nil
+	return string(bytes), nil
 }
 
 // UpdateLatestCommit will update the latest commit of the current branch
@@ -50,7 +50,7 @@ func UpdateLatestCommit(commitHash string) error {
 	}
 
 	filename := fmt.Sprintf(".git/refs/heads/%s", branch)
-	err = ioutil.WriteFile(filename, []byte(commitHash+"\n"), 0644)
+	err = ioutil.WriteFile(filename, []byte(commitHash), 0644)
 	if err != nil {
 		return err
 	}

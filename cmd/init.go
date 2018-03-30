@@ -53,7 +53,7 @@ func createInitialDirectoriesAndFiles(gitDir string) error {
 	defer f.Close()
 
 	if err == nil {
-		_, err = f.WriteString("ref: refs/heads/master\n")
+		_, err = f.WriteString("ref: refs/heads/master")
 	}
 
 	return err
