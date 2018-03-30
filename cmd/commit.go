@@ -13,7 +13,10 @@ var commitCmd = &cobra.Command{
 	Use:   "commit",
 	Short: "Record changes to the repository",
 	Run: func(cmd *cobra.Command, args []string) {
-		commit(commitMsg)
+		err := commit(commitMsg)
+		if err != nil {
+			fmt.Printf("Failed to commit the changes: %v\n", err)
+		}
 	},
 }
 
@@ -25,17 +28,20 @@ func init() {
 	commitCmd.MarkFlagRequired("message")
 }
 
-func commit(message string) {
+func commit(message string) error {
 	treeHash, err := writeTree()
 	if err != nil {
-		fmt.Printf("Failed to write the tree object to the database: %v\n", err)
+		return err
 	}
 
+	// TODO please god fix this...if can't find the file must be first commit hahaha i hate myself
 	latestCommit, _ := refs.LatestCommit()
 	parent := ""
 	if latestCommit != "" {
 		parent = fmt.Sprintf("parent %s\n", latestCommit)
 	}
+
+	// TODO do not hardcode this junk
 	author := "Matthew Herman <mattherman11@gmail.com> 1493552135 -0500"
 	committer := "committer Matthew Herman <mattherman11@gmail.com> 1493552135 -0500"
 
@@ -45,12 +51,9 @@ func commit(message string) {
 	obj := objects.Object{ObjectType: "commit", Data: fullCommitBytes}
 	hash, err := objects.HashObject(obj, true)
 	if err != nil {
-		fmt.Printf("Failed to write the commit to the database: %v\n", err)
-	} else {
-		err := refs.UpdateLatestCommit(hash)
-		if err != nil {
-			fmt.Printf("Failed to update latest commit: %v\n", err)
-		}
-		fmt.Printf("%s\n", hash)
+		return err
 	}
+
+	err = refs.UpdateLatestCommit(hash)
+	return err
 }
