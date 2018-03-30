@@ -7,6 +7,7 @@ import (
 
 	"github.com/mattherman/mhgit/index"
 	"github.com/mattherman/mhgit/objects"
+	"github.com/mattherman/mhgit/refs"
 
 	"github.com/spf13/cobra"
 )
@@ -25,6 +26,11 @@ func init() {
 }
 
 func showStatus() {
+	currentBranch, err := refs.CurrentBranch()
+	if err != nil {
+		fmt.Printf("Failed to determine current branch: %v\n", err)
+	}
+
 	workingDir, err := getWorkingDirectoryFiles()
 	if err != nil {
 		fmt.Printf("Failed to retrieve working directory: %v\n", err)
@@ -36,7 +42,7 @@ func showStatus() {
 	}
 
 	status := getStatus(index.Entries, workingDir)
-	printStatus(status)
+	printStatus(currentBranch, status)
 }
 
 func getWorkingDirectoryFiles() ([]string, error) {
@@ -97,23 +103,26 @@ func getStatus(indexEntries []index.Entry, workingDir []string) status {
 	return status{added: added, modified: modified, removed: removed}
 }
 
-func printStatus(status status) {
+func printStatus(branch string, status status) {
+	fmt.Printf("On branch %s\n", branch)
 	if len(status.modified) > 0 || len(status.removed) > 0 {
-		fmt.Print("\nChanges not staged for commit:\n\n")
+		fmt.Print("Changes not staged for commit:\n\n")
 		for _, path := range status.modified {
 			fmt.Printf("\tmodified: %s\n", path)
 		}
 		for _, path := range status.removed {
 			fmt.Printf("\tdeleted: %s\n", path)
 		}
+
+		fmt.Println()
 	}
 
 	if len(status.added) > 0 {
-		fmt.Print("\nUntracked files:\n\n")
+		fmt.Print("Untracked files:\n\n")
 		for _, path := range status.added {
 			fmt.Printf("\t%s\n", path)
 		}
-	}
 
-	fmt.Println()
+		fmt.Println()
+	}
 }
