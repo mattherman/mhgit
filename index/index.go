@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"io/ioutil"
 	"os"
 	"sort"
@@ -184,11 +185,28 @@ func Add(filepath string) error {
 	}
 	// TODO add to index instead of overwriting it
 	err = writeIndex(index.Entries)
-	if err != nil {
-		return err
+
+	return err
+}
+
+// Remove will remove the specified file from the index if it
+// does not exist in the working directory
+func Remove(filepath string) error {
+	_, err := os.Stat(filepath)
+	if err == nil {
+		return errors.New("file exists and cannot be removed from index")
 	}
 
-	return nil
+	index := ReadIndex()
+	entryIndex := findEntry(index, filepath)
+	if entryIndex == -1 {
+		return nil
+	}
+
+	index.Entries = append(index.Entries[:entryIndex], index.Entries[entryIndex+1:]...)
+	err = writeIndex(index.Entries)
+
+	return err
 }
 
 func findEntry(index Index, path string) int {

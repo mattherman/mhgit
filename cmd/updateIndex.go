@@ -14,8 +14,7 @@ var updateIndexCmd = &cobra.Command{
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		filepath := args[0]
-
-		addToIndex(filepath)
+		updateIndex(filepath, add, remove)
 	},
 }
 
@@ -28,9 +27,16 @@ func init() {
 	updateIndexCmd.Flags().BoolVarP(&remove, "remove", "r", false, "If a specified file is in the index but is missing then it’s removed. Default behavior is to ignore removed file.")
 }
 
-func addToIndex(filepath string) {
-	err := index.Add(filepath)
-	if err != nil {
-		fmt.Printf("Failed to create the index entry: %v\n", err)
+func updateIndex(filepath string, add bool, remove bool) {
+	if remove {
+		err := index.Remove(filepath)
+		if err != nil {
+			fmt.Printf("Failed to remove the index entry: %v\n", err)
+		}
+	} else {
+		err := index.Add(filepath)
+		if err != nil {
+			fmt.Printf("Failed to create the index entry: %v\n", err)
+		}
 	}
 }
