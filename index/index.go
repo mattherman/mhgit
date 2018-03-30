@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"sort"
+	"syscall"
 
 	"github.com/mattherman/mhgit/objects"
 )
@@ -20,12 +21,12 @@ type Index struct {
 	Signature  string
 	Version    uint32
 	EntryCount uint32
-	Entries    []IndexEntry
+	Entries    []Entry
 	Checksum   string
 }
 
-// IndexEntry represents a file in the git index.
-type IndexEntry struct {
+// Entry represents a file in the git index.
+type Entry struct {
 	CTimeSec  int32
 	CTimeNano int32
 	MTimeSec  int32
@@ -64,8 +65,8 @@ func (e fixedSizeIndexEntry) getPathLength() int {
 	return int(e.Flags & 0x0FFF)
 }
 
-func (e fixedSizeIndexEntry) toFullEntry(path string) IndexEntry {
-	return IndexEntry{
+func (e fixedSizeIndexEntry) toFullEntry(path string) Entry {
+	return Entry{
 		CTimeSec:  e.CTimeSec,
 		CTimeNano: e.CTimeNano,
 		MTimeSec:  e.MTimeSec,
@@ -81,7 +82,7 @@ func (e fixedSizeIndexEntry) toFullEntry(path string) IndexEntry {
 	}
 }
 
-func (e IndexEntry) toFixedSizeEntry(path string) fixedSizeIndexEntry {
+func (e Entry) toFixedSizeEntry(path string) fixedSizeIndexEntry {
 
 	var hashArray [20]byte
 	hashBytes, _ := hex.DecodeString(e.Hash)
@@ -105,6 +106,54 @@ func (e IndexEntry) toFixedSizeEntry(path string) fixedSizeIndexEntry {
 	}
 }
 
+// NewEntry will create a new index entry based on the filepath given.
+// The hash of the file will be included in the entry, but no object
+// will be created in the database.
+func newEntry(filepath string, hash string) (Entry, error) {
+	stat, err := os.Stat(filepath)
+	if err != nil {
+		return Entry{}, err
+	}
+
+	var ctimesec int32
+	var ctimenano int32
+	var mtimesec int32
+	var mtimenano int32
+	var ino int32
+	var dev int32
+	var uid int32
+	var gid int32
+	var mode int32
+
+	statUnix, infoIsAvailable := stat.Sys().(*syscall.Stat_t)
+	if infoIsAvailable {
+		ctimesec = int32(statUnix.Ctim.Sec)
+		ctimenano = int32(statUnix.Ctim.Nsec)
+		mtimesec = int32(statUnix.Mtim.Sec)
+		mtimenano = int32(statUnix.Mtim.Nsec)
+		ino = int32(statUnix.Ino)
+		dev = int32(statUnix.Dev)
+		uid = int32(statUnix.Uid)
+		gid = int32(statUnix.Gid)
+		mode = int32(statUnix.Mode)
+	}
+
+	return Entry{
+		CTimeSec:  ctimesec,
+		CTimeNano: ctimenano,
+		MTimeSec:  mtimesec,
+		MTimeNano: mtimenano,
+		Dev:       dev,
+		Ino:       ino,
+		UID:       uid,
+		GID:       gid,
+		Mode:      mode,
+		FileSize:  int32(stat.Size()),
+		Hash:      hash,
+		Path:      filepath,
+	}, nil
+}
+
 // ReadIndex will show information about files in the
 // index and the working tree
 func ReadIndex() Index {
@@ -114,7 +163,7 @@ func ReadIndex() Index {
 			Signature:  "DIRC",
 			Version:    2,
 			EntryCount: 0,
-			Entries:    []IndexEntry{},
+			Entries:    []Entry{},
 		}
 	}
 
@@ -139,7 +188,7 @@ func ReadIndex() Index {
 		panic("Index content did not match the checksum")
 	}
 
-	index.Entries = make([]IndexEntry, index.EntryCount)
+	index.Entries = make([]Entry, index.EntryCount)
 	if index.EntryCount > 0 {
 
 		entryListBytes := indexBytes[12:(indexSize - checksumLength)]
@@ -193,7 +242,7 @@ func readIndexEntry(entryBytes []byte) fixedSizeIndexEntry {
 }
 
 // WriteIndex will write the index file with the specified entries
-func WriteIndex(entries []IndexEntry) error {
+func WriteIndex(entries []Entry) error {
 	sort.Slice(entries, func(i, j int) bool {
 		return entries[i].Path < entries[j].Path
 	})
@@ -253,4 +302,31 @@ func Exists(filepath string) bool {
 		}
 	}
 	return false
+}
+
+// Add will add the specified file to the index if it exists
+// in the working directory
+func Add(filepath string) error {
+	_, err := os.Stat(filepath)
+	if os.IsNotExist(err) {
+		return err
+	}
+
+	hash, err := objects.HashFile(filepath, true)
+	if err != nil {
+		return err
+	}
+
+	entry, err := newEntry(filepath, hash)
+	if err != nil {
+		return err
+	}
+
+	// TODO add to index instead of overwriting it
+	err = WriteIndex([]Entry{entry})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
