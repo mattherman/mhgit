@@ -13,9 +13,11 @@ var lsFilesCmd = &cobra.Command{
 	Short: "Show information about files in the index and the working tree",
 	Run: func(cmd *cobra.Command, args []string) {
 		index := index.ReadIndex()
-		if showStaged {
-			for _, entry := range index.Entries {
+		for _, entry := range index.Entries {
+			if showStaged {
 				fmt.Printf("%o %s 0\t %s\n", entry.Mode, entry.Hash, entry.Path)
+			} else {
+				fmt.Printf("%s\n", entry.Path)
 			}
 		}
 	},
