@@ -102,20 +102,20 @@ func ReadObject(hash string) (Object, error) {
 	content, err := readCompressedFile(objectPath)
 
 	if err != nil {
-		panic(err)
+		return Object{}, err
 	}
 
 	nullIndex := bytes.IndexByte(content, 0)
 
 	if nullIndex == -1 {
-		panic("Object format unreadable.")
+		return Object{}, err
 	}
 
 	header := string(content[:nullIndex-1])
 	headerParts := strings.Split(header, " ")
 
 	if len(headerParts) < 2 {
-		panic("Unable to parse object header.")
+		return Object{}, err
 	}
 
 	return Object{Data: content[nullIndex:], ObjectType: headerParts[0]}, nil
