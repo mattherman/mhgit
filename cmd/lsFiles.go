@@ -12,7 +12,11 @@ var lsFilesCmd = &cobra.Command{
 	Use:   "ls-files",
 	Short: "Show information about files in the index and the working tree",
 	Run: func(cmd *cobra.Command, args []string) {
-		index := index.ReadIndex()
+		index, err := index.ReadIndex()
+		if err != nil {
+			fmt.Printf("Could not read index: %v\n", err)
+		}
+
 		for _, entry := range index.Entries {
 			if showStaged {
 				fmt.Printf("%o %s 0\t %s\n", entry.Mode, entry.Hash, entry.Path)

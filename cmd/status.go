@@ -30,12 +30,12 @@ func showStatus() {
 		fmt.Printf("Failed to retrieve working directory: %v\n", err)
 	}
 
-	indexEntries := index.ReadIndex().Entries
+	index, err := index.ReadIndex()
 	if err != nil {
 		fmt.Printf("Failed to retrieve indexed files: %v\n", err)
 	}
 
-	status := getStatus(indexEntries, workingDir)
+	status := getStatus(index.Entries, workingDir)
 	printStatus(status)
 }
 

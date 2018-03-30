@@ -175,7 +175,11 @@ func Add(filepath string) error {
 		return err
 	}
 
-	index := ReadIndex()
+	index, err := ReadIndex()
+	if err != nil {
+		return err
+	}
+
 	entryIndex := findEntry(index, filepath)
 
 	if entryIndex != -1 {
@@ -197,7 +201,11 @@ func Remove(filepath string) error {
 		return errors.New("file exists and cannot be removed from index")
 	}
 
-	index := ReadIndex()
+	index, err := ReadIndex()
+	if err != nil {
+		return err
+	}
+
 	entryIndex := findEntry(index, filepath)
 	if entryIndex == -1 {
 		return nil
@@ -220,7 +228,7 @@ func findEntry(index Index, path string) int {
 
 // ReadIndex will show information about files in the
 // index and the working tree
-func ReadIndex() Index {
+func ReadIndex() (Index, error) {
 	_, err := os.Stat(indexFile)
 	if os.IsNotExist(err) {
 		return Index{
@@ -228,20 +236,20 @@ func ReadIndex() Index {
 			Version:    2,
 			EntryCount: 0,
 			Entries:    []Entry{},
-		}
+		}, nil
 	}
 
 	indexBytes, err := ioutil.ReadFile(indexFile)
 	if err != nil {
-		panic(err)
+		return Index{}, err
 	}
 
 	indexSize := len(indexBytes)
-	index := Index{}
 
 	headerBytes := indexBytes[0:12]
 	checksumBytes := indexBytes[(indexSize - checksumLength):]
 
+	index := Index{}
 	index.Signature = string(headerBytes[0:4])
 	index.Version = binary.BigEndian.Uint32(headerBytes[4:8])
 	index.EntryCount = binary.BigEndian.Uint32(headerBytes[8:12])
@@ -249,7 +257,7 @@ func ReadIndex() Index {
 
 	digest := objects.ComputeSha1(indexBytes[:(indexSize - checksumLength)])
 	if digest != index.Checksum {
-		panic("Index content did not match the checksum")
+		return Index{}, errors.New("index content did not match the checksum")
 	}
 
 	index.Entries = make([]Entry, index.EntryCount)
@@ -278,7 +286,7 @@ func ReadIndex() Index {
 		}
 	}
 
-	return index
+	return index, nil
 }
 
 func readIndexEntry(entryBytes []byte) fixedSizeIndexEntry {
