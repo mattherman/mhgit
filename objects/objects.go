@@ -37,8 +37,42 @@ func (o Object) String() string {
 		return fmt.Sprintf("%s", o.Data)
 	}
 
-	// TODO properly parse the tree and output it
-	return fmt.Sprintf("%s", o.Data)
+	// TODO find a better way of doing this, its very ugly
+	var stringBuf bytes.Buffer
+	current := 0
+	for current < len(o.Data) {
+		nullIndex := bytes.IndexByte(o.Data, 0)
+		fmt.Printf("nullIndex=%d\n", nullIndex)
+		if nullIndex == -1 {
+			break
+		}
+
+		fileInfoBytes := o.Data[current:nullIndex]
+		fileInfo := strings.Split(string(fileInfoBytes), " ")
+		if len(fileInfo) < 2 {
+			fmt.Printf("ERROR: not big enough, len(fileInfo)=%d\n", len(fileInfo))
+			fmt.Printf("fileInfo=%s", string(fileInfoBytes))
+		}
+		mode := fileInfo[0]
+		path := fileInfo[1]
+		var objType string
+		if strings.HasPrefix(mode, "1") {
+			objType = "blob"
+		} else {
+			objType = "tree"
+		}
+
+		hashBeginIndex := nullIndex + 1
+		hash := hex.EncodeToString(o.Data[hashBeginIndex:(hashBeginIndex + 20)])
+
+		treeEntry := fmt.Sprintf("%s %s %s\t%s\n", mode, objType, hash, path)
+		fmt.Println(treeEntry)
+		stringBuf.WriteString(treeEntry)
+
+		current = current + len(fileInfoBytes) + 21
+	}
+
+	return stringBuf.String()
 }
 
 // HashFile will compute the SHA1 hash of a file. If write is true, the
