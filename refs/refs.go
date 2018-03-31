@@ -1,6 +1,7 @@
 package refs
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -19,10 +20,45 @@ func CurrentBranch() (string, error) {
 
 	if match {
 		splitHeadString := strings.Split(headString, "/")
-		return splitHeadString[2], nil
+		return strings.Trim(splitHeadString[2], " \n"), nil
 	}
 
 	return "", nil
+}
+
+// ListBranches will return all the existing branches
+func ListBranches() ([]string, error) {
+	files, err := ioutil.ReadDir(".git/refs/heads")
+
+	var filenames []string
+	for _, file := range files {
+		filenames = append(filenames, file.Name())
+	}
+	return filenames, err
+}
+
+// CreateBranch will create a new branch if it does not exist
+func CreateBranch(branchName string) error {
+	branches, err := ListBranches()
+	if err != nil {
+		return err
+	}
+
+	for _, branch := range branches {
+		if branch == branchName {
+			return errors.New("branch already exists")
+		}
+	}
+
+	commitHash, err := LatestCommit()
+	if err != nil {
+		return err
+	}
+
+	filename := fmt.Sprintf(".git/refs/heads/%s", branchName)
+	err = ioutil.WriteFile(filename, []byte(commitHash), 0644)
+
+	return err
 }
 
 // LatestCommit will return the latest commit hash of the current branch
